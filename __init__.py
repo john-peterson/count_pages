@@ -4,13 +4,13 @@ from __future__ import (unicode_literals, division, absolute_import,
                         print_function)
 
 __license__   = 'GPL v3'
-__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>'
+__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>. 2012, John Peterson.'
 __docformat__ = 'restructuredtext en'
 
 # The class that all Interface Action plugin wrappers must inherit from
-from calibre.customize import InterfaceActionBase
+from calibre.customize import FileTypePlugin, InterfaceActionBase
 
-class ActionCountPages(InterfaceActionBase):
+class ActionCountPages(InterfaceActionBase, FileTypePlugin):
     '''
     This class is a simple wrapper that provides information about the actual
     plugin class. The actual interface plugin class is called InterfacePlugin
@@ -23,9 +23,11 @@ class ActionCountPages(InterfaceActionBase):
     name                    = 'Count Pages'
     description             = 'Count number of pages/words in an ePub/Mobi to store in custom columns'
     supported_platforms     = ['windows', 'osx', 'linux']
-    author                  = 'Grant Drake'
+    author                  = 'Grant Drake, John Peterson'
     version                 = (1, 6, 3)
     minimum_calibre_version = (0, 8, 57)
+    file_types              = set(['mobi', 'epub'])
+    on_postimport           = True
 
     #: This field defines the GUI plugin class that contains all the code
     #: that actually does something. Its format is module_path:class_name
@@ -68,8 +70,10 @@ class ActionCountPages(InterfaceActionBase):
         :param config_widget: The widget returned by :meth:`config_widget`.
         '''
         config_widget.save_settings()
-
-
+        
+    def postimport(self, id, fmt, db):
+        self.actual_plugin_._do_count_pages([id])
+        
 # For testing, run from command line with this:
 # calibre-debug -e __init__.py
 if __name__ == '__main__':

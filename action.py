@@ -5,7 +5,7 @@ from __future__ import (unicode_literals, division, absolute_import,
 from calibre_plugins.count_pages.config import ALL_STATISTICS
 
 __license__   = 'GPL v3'
-__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>'
+__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>. 2012, John Peterson.'
 __docformat__ = 'restructuredtext en'
 
 from functools import partial
@@ -77,21 +77,8 @@ class CountPagesAction(InterfaceAction):
         if not rows or len(rows) == 0:
             return
         book_ids = self.gui.library_view.get_selected_ids()
-
-        statistics_to_run = [k for k in ALL_STATISTICS.keys()]
-        any_valid, statistics_cols_map = self._get_column_validity(statistics_to_run)
-        if not any_valid:
-            if not question_dialog(self.gui, 'Configure plugin', '<p>'+
-                'You must specify custom column(s) first. Do you want to configure this now?',
-                show_copy_button=False):
-                return
-            self.show_configuration()
-            return
-        use_goodreads = False
-        if mode.startswith('Goodreads'):
-            use_goodreads = True
-        self._do_count_pages(book_ids, statistics_cols_map, use_goodreads)
-
+        self._do_count_pages(book_ids)
+        
     def _get_column_validity(self, statistics_to_run):
         '''
         Given a list of algorithms requested to be run, lookup what custom
@@ -146,7 +133,24 @@ class CountPagesAction(InterfaceAction):
 
         self._do_count_pages(book_ids, statistics_cols_map, use_goodreads)
 
-    def _do_count_pages(self, book_ids, statistics_cols_map, use_goodreads):
+    def _do_count_pages(self, book_ids):
+        # Settings
+        c = cfg.plugin_prefs[cfg.STORE_NAME]
+        mode = c.get(cfg.KEY_BUTTON_DEFAULT, cfg.DEFAULT_STORE_VALUES[cfg.KEY_BUTTON_DEFAULT])
+
+        statistics_to_run = [k for k in ALL_STATISTICS.keys()]
+        any_valid, statistics_cols_map = self._get_column_validity(statistics_to_run)
+        if not any_valid:
+            if not question_dialog(self.gui, 'Configure plugin', '<p>'+
+                'You must specify custom column(s) first. Do you want to configure this now?',
+                show_copy_button=False):
+                return
+            self.show_configuration()
+            return
+        use_goodreads = False
+        if mode.startswith('Goodreads'):
+            use_goodreads = True
+
         # Create a temporary directory to copy all the ePubs to while scanning
         tdir = PersistentTemporaryDirectory('_count_pages', prefix='')
 
@@ -201,12 +205,7 @@ class CountPagesAction(InterfaceAction):
         else:
             payload = (job.statistics_cols_map, book_statistics_map)
             all_ids = set(book_statistics_map.keys())
-            msg = '<p>Count Pages plugin found <b>%d statistics(s)</b>. ' % len(all_ids) + \
-                  'Proceed with updating columns in your library?'
-            self.gui.proceed_question(self._update_database_columns,
-                    payload, job.details,
-                    'Count log', 'Count complete', msg,
-                    show_copy_button=False)
+            self._update_database_columns(payload)
 
     def _update_database_columns(self, payload):
         (statistics_cols_map, book_statistics_map) = payload

@@ -4,7 +4,7 @@ from __future__ import (unicode_literals, division, absolute_import,
                         print_function)
 
 __license__   = 'GPL v3'
-__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>'
+__copyright__ = '2011, Grant Drake <grant.drake@gmail.com>. 2012, John Peterson.'
 __docformat__ = 'restructuredtext en'
 
 import os, traceback
@@ -17,13 +17,10 @@ from calibre.utils.config import prefs
 
 import calibre_plugins.count_pages.config as cfg
 
-class QueueProgressDialog(QProgressDialog):
+class QueueProgressDialog():
 
     def __init__(self, gui, book_ids, tdir, statistics_cols_map,
                  pages_algorithm, use_goodreads, overwrite_existing, queue, db):
-        QProgressDialog.__init__(self, '', QString(), 0, len(book_ids), gui)
-        self.setWindowTitle('Queueing books for counting statistics')
-        self.setMinimumWidth(500)
         self.book_ids, self.tdir, self.queue, self.db = book_ids, tdir, queue, db
         self.statistics_cols_map = statistics_cols_map
         self.pages_algorithm = pages_algorithm
@@ -38,8 +35,7 @@ class QueueProgressDialog(QProgressDialog):
         self.labels_map = dict((col_name, db.field_metadata.key_to_label(col_name))
                                for col_name in statistics_cols_map.itervalues() if col_name)
 
-        QTimer.singleShot(0, self.do_book)
-        self.exec_()
+        self.do_book()
 
     def do_book(self):
         book_id = self.book_ids[self.i]
@@ -63,7 +59,6 @@ class QueueProgressDialog(QProgressDialog):
                 # to check whether this book has an existing value in each column.
                 # No point in performing statistics if book already has values.
                 if not statistics_to_run:
-                    self.bad[book_id] = 'Book already has all statistics and overwrite is turned off'
                     done = True
 
             goodreads_id = None
@@ -88,7 +83,6 @@ class QueueProgressDialog(QProgressDialog):
                 input_formats = [f for f in self.input_order if f in book_formats]
                 for bf in input_formats:
                     if self.db.has_format(book_id, bf, index_is_id=True):
-                        self.setLabelText(_('Queueing ')+title)
                         try:
                             # Copy the book to the temp directory, using book id as filename
                             dest_file = os.path.join(self.tdir, '%d.%s'%(book_id, bf.lower()))
@@ -110,14 +104,12 @@ class QueueProgressDialog(QProgressDialog):
             traceback.print_exc()
             self.bad[book_id] = traceback.format_exc()
 
-        self.setValue(self.i)
         if self.i >= len(self.book_ids):
             return self.do_queue()
         else:
-            QTimer.singleShot(0, self.do_book)
+            self.do_book()
 
     def do_queue(self):
-        self.hide()
         if len(self.bad):
             res = []
             for book_id, error in self.bad.iteritems():
